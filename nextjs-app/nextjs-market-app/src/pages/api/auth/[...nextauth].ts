@@ -1,10 +1,9 @@
 import NextAuth, { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prismadb';
 import Credentials from 'next-auth/providers/credentials';
-
-const prisma = new PrismaClient();
+import bcrypt from 'bcryptjs';
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -16,39 +15,55 @@ export const authOptions: NextAuthOptions = {
     Credentials({
       name: 'market',
       credentials: {
-        username: {
-          label: 'Username',
-          type: 'text',
-          placeholder: 'jsmith',
-        },
+        email: { label: 'Email', type: 'text' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials, request) {
-        const user = {
-          id: '1',
-          name: 'J Smith',
-          email: 'jsmith@example.com',
-        };
-
-        if (user) {
-          return user;
-        } else {
-          return null;
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error('Invalid credentials');
         }
+
+        // 이메일에 맞는 유저가 있는지 찾기
+        const user = await prisma.user.findUnique({
+          where: {
+            email: credentials.email,
+          },
+        });
+
+        // 유저가 없거나, 해시암호가 없을 때(OAuth 로그인)
+        if (!user || !user?.hashedPassword) {
+          throw new Error('Invalid user');
+        }
+
+        // 비밀번호 확인
+        const isCorrectPassword = await bcrypt.compare(
+          credentials.password,
+          user.hashedPassword
+        );
+
+        if (!isCorrectPassword) {
+          throw new Error('Invalid password');
+        }
+
+        return user;
       },
     }),
   ],
   session: {
     strategy: 'jwt',
   },
+  jwt: {
+    secret: process.env.JWT_SECRET,
+    maxAge: 30 * 24 * 60 * 60, // 30days
+  },
+  pages: {
+    signIn: '/auth/login',
+  },
   callbacks: {
     async jwt({ token, user }) {
-      console.log('token', token);
-      console.log('user', user);
       return { ...token, ...user };
     },
     async session({ session, token }) {
-      console.log('@', session, token);
       session.user = token;
       return session;
     },

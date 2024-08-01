@@ -1,10 +1,17 @@
 import React from 'react';
 import Link from 'next/link';
-import { signIn, signOut, useSession } from 'next-auth/react';
+import { signIn, signOut } from 'next-auth/react';
+import { User } from '@prisma/client';
 
-export default function NavItem({ mobile }: { mobile?: boolean }) {
-  const { data: session, status } = useSession();
-  console.log({ session }, status);
+interface NavItemProps {
+  mobile?: boolean;
+  currentUser?: User | null;
+}
+
+export default function NavItem({
+  mobile,
+  currentUser,
+}: NavItemProps) {
   return (
     <ul
       className={`text-md justify-center flex gap-4 w-full items-center ${
@@ -17,7 +24,7 @@ export default function NavItem({ mobile }: { mobile?: boolean }) {
       <li className='py-2 text-center border-b-2 cursor-pointer'>
         <Link href='/user'>User</Link>
       </li>
-      {session?.user ? (
+      {currentUser ? (
         <li className='py-2 text-center border-b-2 cursor-pointer'>
           <button onClick={() => signOut()}>Signout</button>
         </li>
