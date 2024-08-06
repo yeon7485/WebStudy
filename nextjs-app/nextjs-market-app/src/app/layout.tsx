@@ -3,8 +3,10 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import Navbar from '@/components/Navbar';
 import getCurrentUser from './actions/getCurrentUser';
+import Script from 'next/script';
 
 const inter = Inter({ subsets: ['latin'] });
+const KAKAO_SDK_URL = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY}&autoload=false`;
 
 export const metadata: Metadata = {
   title: 'Create Next App',
@@ -21,7 +23,8 @@ export default async function RootLayout({
     <html lang='ko'>
       <body className={inter.className}>
         <Navbar currentUser={currentUser} />
-        {children}
+        <div>{children}</div>
+        <Script src={KAKAO_SDK_URL} />
       </body>
     </html>
   );
